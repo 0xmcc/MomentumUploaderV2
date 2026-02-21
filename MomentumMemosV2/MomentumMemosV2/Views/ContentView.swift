@@ -4,6 +4,20 @@ struct ContentView: View {
     @StateObject private var viewModel = ContentViewModel()
     
     var body: some View {
+        TabView {
+            batchView
+                .tabItem {
+                    Label("Batch", systemImage: "tray.full")
+                }
+            
+            StreamingRecordView()
+                .tabItem {
+                    Label("Live", systemImage: "waveform.circle")
+                }
+        }
+    }
+    
+    private var batchView: some View {
         NavigationStack {
             VStack {
                 // Show errors dynamically
@@ -42,13 +56,6 @@ struct ContentView: View {
                 
                 // Recording / Activity Status Box
                 VStack(spacing: 8) {
-                    if viewModel.isTranscribing {
-                        HStack {
-                            ProgressView()
-                            Text("Transcribing via Parakeet NIM...")
-                                .foregroundColor(.orange)
-                        }
-                    }
                     if viewModel.isUploading {
                         HStack {
                             ProgressView()

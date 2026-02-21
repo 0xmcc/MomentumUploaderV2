@@ -9,6 +9,8 @@ class SupabaseManager {
         static let supabaseAnonKey = "SUPABASE_ANON_KEY"
     }
 
+    private var cachedClient: SupabaseClient?
+    
     init() {}
 
     private func configValue(for key: String) -> String? {
@@ -23,7 +25,9 @@ class SupabaseManager {
         return nil
     }
 
-    private func makeClient() throws -> SupabaseClient {
+    private func getClient() throws -> SupabaseClient {
+        if let client = cachedClient { return client }
+
         guard let urlString = configValue(for: ConfigKeys.supabaseURL) else {
             throw NSError(
                 domain: "SupabaseManager",
@@ -48,11 +52,13 @@ class SupabaseManager {
             )
         }
 
-        return SupabaseClient(supabaseURL: supabaseURL, supabaseKey: anonKey)
+        let client = SupabaseClient(supabaseURL: supabaseURL, supabaseKey: anonKey)
+        cachedClient = client
+        return client
     }
     
     func uploadMetadata(memo: VoiceMemo) async throws {
-        let client = try makeClient()
+        let client = try getClient()
         // Insert record into 'memos' table
         try await client.database
             .from("memos")
@@ -61,7 +67,7 @@ class SupabaseManager {
     }
     
     func uploadAudioFile(fileURL: URL, fileName: String) async throws -> URL {
-        let client = try makeClient()
+        let client = try getClient()
         let fileData = try Data(contentsOf: fileURL)
         
         // Upload the file to "audio_memos" storage bucket using Supabase Storage
@@ -78,7 +84,7 @@ class SupabaseManager {
     }
     
     func fetchMemos() async throws -> [VoiceMemo] {
-        let client = try makeClient()
+        let client = try getClient()
         let response: [VoiceMemo] = try await client.database
             .from("memos")
             .select()
@@ -87,5 +93,25 @@ class SupabaseManager {
             .value
         
         return response
+    }
+    
+    // Listen for updates on the memos table (e.g. status changes from Edge Functions)
+    func subscribeToMemos(onUpdate: @escaping () -> Void) async throws {
+        let client = try getClient()
+        let channel = client.channel("public:memos")
+        
+        let stream = channel.postgresChange(
+            AnyAction.self,
+            schema: "public",
+            table: "memos"
+        )
+        
+        await channel.subscribe()
+        
+        Task {
+            for await _ in stream {
+                onUpdate()
+            }
+        }
     }
 }
