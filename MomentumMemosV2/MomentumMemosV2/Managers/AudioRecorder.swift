@@ -1,5 +1,6 @@
 import Foundation
 import AVFoundation
+internal import Combine
 
 class AudioRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate {
     @Published var isRecording = false
@@ -9,7 +10,9 @@ class AudioRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate {
     private var audioRecorder: AVAudioRecorder?
     
     func startRecording() {
+        #if os(iOS)
         let session = AVAudioSession.sharedInstance()
+        #endif
         do {
             #if os(iOS)
             try session.setCategory(.playAndRecord, mode: .default)

@@ -33,8 +33,7 @@ class SupabaseManager {
                 options: FileOptions(contentType: "audio/m4a")
             )
         
-        // Retrieve the public URL for the newly uploaded file
-        let publicURL = try client.storage.from("audio_memos").getPublicUrl(path: fileName)
+        let publicURL = URL(string: "https://wyzcizewwswwnqllzoyl.supabase.co/storage/v1/object/public/audio_memos/\(fileName)")!
         return publicURL
     }
     
