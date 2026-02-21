@@ -10,6 +10,8 @@ class AudioRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate {
     private var audioRecorder: AVAudioRecorder?
     
     func startRecording() {
+        guard !isRecording else { return }
+
         #if os(iOS)
         let session = AVAudioSession.sharedInstance()
         #endif
@@ -34,11 +36,13 @@ class AudioRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate {
             
             audioRecorder = try AVAudioRecorder(url: soundFilePath, settings: settings)
             audioRecorder?.delegate = self
-            audioRecorder?.record()
+            let didStartRecording = audioRecorder?.record() ?? false
             
             DispatchQueue.main.async {
-                self.isRecording = true
-                self.errorMessage = nil
+                self.isRecording = didStartRecording
+                self.errorMessage = didStartRecording
+                    ? nil
+                    : "Recorder failed to start. Check microphone permissions and audio input device."
             }
         } catch {
             DispatchQueue.main.async {
@@ -56,6 +60,15 @@ class AudioRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate {
         
         DispatchQueue.main.async {
             self.isRecording = false
+        }
+    }
+
+    func audioRecorderDidFinishRecording(_ recorder: AVAudioRecorder, successfully flag: Bool) {
+        DispatchQueue.main.async {
+            self.isRecording = false
+            if !flag {
+                self.errorMessage = "Recording stopped unexpectedly."
+            }
         }
     }
 }

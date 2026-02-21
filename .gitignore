@@ -2,6 +2,7 @@
 build/
 DerivedData/
 *.xcuserdata
+*.xcuserdatad/
 *.xcworkspace/xcuserdata/
 *.pbxuser
 *.mode1v3
@@ -41,3 +42,7 @@ fastlane/test_output
 # Environment
 .env
 .env.local
+
+.specstory/
+.githooks/
+.github/

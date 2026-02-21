@@ -16,7 +16,7 @@ To fully run this application and make it complete, please accomplish the follow
 
 - [ ] **Configure Supabase Details**:
   - Get your instance configuration from your [Supabase Dashboard](https://supabase.com/dashboard).
-  - Open `MomentumApp/Managers/SupabaseManager.swift` and replace `"YOUR_SUPABASE_URL"` and `"YOUR_SUPABASE_ANON_KEY"` with your live environment tokens.
+  - Set `SUPABASE_URL` and `SUPABASE_ANON_KEY` as environment variables in your Xcode scheme (or add them to Info.plist).
 
 - [ ] **Set up Supabase Tables & Storage**:
   - In Supabase SQL Editor, create the table for the application:
@@ -34,7 +34,8 @@ To fully run this application and make it complete, please accomplish the follow
 
 - [ ] **Configure NVIDIA NIM Details**:
   - Procure an execution API Key from your [NVIDIA Developer account](https://build.nvidia.com) routing to the Parakeet endpoints.
-  - Open `MomentumApp/Managers/TranscriptionManager.swift` and replace `"YOUR_NVIDIA_API_KEY"` with your key.
+  - Set `NVIDIA_API_KEY` as an environment variable in your Xcode scheme (or add it to Info.plist).
+  - Optionally set `NVIDIA_TRANSCRIPTION_URL` to override the default transcription endpoint.
 
 - [ ] **Install Swift Package Dependencies**:
   - Go to **File > Add Package Dependencies...** in Xcode.
@@ -54,3 +55,21 @@ To fully run this application and make it complete, please accomplish the follow
   - Implement a way to delete voice memos. 
 
 Happy building!
+
+## Branch Safety (Hard Guarantees)
+
+Use both GitHub protection and local hooks:
+
+1. Install local hooks (blocks commits/pushes from `main`):
+   ```bash
+   chmod +x scripts/install-git-hooks.sh && ./scripts/install-git-hooks.sh
+   ```
+
+2. In GitHub, protect `main` with these settings:
+   - Require a pull request before merging
+   - Block direct pushes to `main` (restrict who can push)
+   - Require status checks to pass before merging
+   - Select the `Build (Xcode)` check from CI as required
+   - Require branches to be up to date before merging (recommended)
+
+This gives hard server-side enforcement in GitHub and local safety rails to prevent accidental commits/pushes to `main`.

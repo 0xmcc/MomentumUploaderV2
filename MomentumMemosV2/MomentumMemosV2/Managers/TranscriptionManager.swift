@@ -2,15 +2,46 @@ import Foundation
 
 class TranscriptionManager {
     static let shared = TranscriptionManager()
-    
-    // NVIDIA NIM API endpoint for transcription
-    // Assuming NVIDIA Parakeet TDT 1.1b model for demonstration
-    private let nvapiURL = URL(string: "https://integrate.api.nvidia.com/v1/audio/transcriptions")!
-    
-    // TODO: Add your NVIDIA NIM API Key
-    private let apiKey = "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"
+
+    private enum ConfigKeys {
+        static let endpoint = "NVIDIA_TRANSCRIPTION_URL"
+        static let apiKey = "NVIDIA_API_KEY"
+        static let model = "NVIDIA_TRANSCRIPTION_MODEL"
+        static let defaultEndpoint = "https://integrate.api.nvidia.com/v1/audio/transcriptions"
+        static let defaultModel = "nvidia/parakeet-ctc-1.1b-asr"
+    }
+
+    private func configValue(for key: String) -> String? {
+        if let envValue = ProcessInfo.processInfo.environment[key], !envValue.isEmpty {
+            return envValue
+        }
+
+        if let plistValue = Bundle.main.object(forInfoDictionaryKey: key) as? String, !plistValue.isEmpty {
+            return plistValue
+        }
+
+        return nil
+    }
     
     func transcribeAudio(fileURL: URL) async throws -> String {
+        let endpointString = configValue(for: ConfigKeys.endpoint) ?? ConfigKeys.defaultEndpoint
+        let model = configValue(for: ConfigKeys.model) ?? ConfigKeys.defaultModel
+        guard let nvapiURL = URL(string: endpointString) else {
+            throw NSError(
+                domain: "TranscriptionManager",
+                code: 1001,
+                userInfo: [NSLocalizedDescriptionKey: "Invalid transcription endpoint URL."]
+            )
+        }
+
+        guard let apiKey = configValue(for: ConfigKeys.apiKey) else {
+            throw NSError(
+                domain: "TranscriptionManager",
+                code: 1000,
+                userInfo: [NSLocalizedDescriptionKey: "Missing configuration value for \(ConfigKeys.apiKey)."]
+            )
+        }
+
         var request = URLRequest(url: nvapiURL)
         request.httpMethod = "POST"
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
@@ -43,7 +74,7 @@ class TranscriptionManager {
         // "nvidia/parakeet-rnnt-1.1b" or "nvidia/parakeet-tdt-1.1b"
         appendText("--\(boundary)\r\n")
         appendText("Content-Disposition: form-data; name=\"model\"\r\n\r\n")
-        appendText("nvidia/parakeet-tdt-1.1b\r\n")
+        appendText("\(model)\r\n")
         
         appendText("--\(boundary)--\r\n")
         
@@ -52,10 +83,25 @@ class TranscriptionManager {
         let (data, response) = try await URLSession.shared.data(for: request)
         
         // Check for valid HTTP status
-        guard let httpResponse = response as? HTTPURLResponse,
-              (200...299).contains(httpResponse.statusCode) else {
-            let errorMsg = String(data: data, encoding: .utf8) ?? "Unknown Request Error"
-            throw NSError(domain: "TranscriptionManager", code: 1, userInfo: [NSLocalizedDescriptionKey: errorMsg])
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw NSError(
+                domain: "TranscriptionManager",
+                code: 2,
+                userInfo: [NSLocalizedDescriptionKey: "Invalid response from transcription API."]
+            )
+        }
+
+        guard (200...299).contains(httpResponse.statusCode) else {
+            let apiMessage = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
+            let fallbackHint = "Verify NVIDIA_TRANSCRIPTION_URL and NVIDIA_TRANSCRIPTION_MODEL from your Build NVIDIA API page."
+            let message = (apiMessage?.isEmpty == false) ? apiMessage! : "HTTP \(httpResponse.statusCode)"
+            throw NSError(
+                domain: "TranscriptionManager",
+                code: httpResponse.statusCode,
+                userInfo: [
+                    NSLocalizedDescriptionKey: "Transcription request failed [\(httpResponse.statusCode)] at \(endpointString): \(message). \(fallbackHint)"
+                ]
+            )
         }
         
         // Decode response from the standard OpenAI-compatible API mapping from NVIDIA
