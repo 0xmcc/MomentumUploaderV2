@@ -26,27 +26,20 @@ class ContentViewModel: ObservableObject {
     }
     
     func toggleRecording() {
-        // Clear any previous error
         errorMessage = nil
-        
+
         if audioRecorder.isRecording {
+            // Capture the URL before stopping (stopRecording sets isRecording=false synchronously)
+            let url = audioRecorder.recordingURL
             audioRecorder.stopRecording()
-            
-            // Allow a small delay to cleanly stop writing to disk
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                if let error = self.audioRecorder.errorMessage {
-                    self.errorMessage = "Recording Error: \(error)"
-                    return
-                }
-                
-                guard let url = self.audioRecorder.recordingURL else {
-                    self.errorMessage = "Could not find recorded audio file."
-                    return
-                }
-                
-                Task {
-                    await self.processAndUpload(fileURL: url)
-                }
+
+            guard let fileURL = url else {
+                errorMessage = "Could not find recorded audio file."
+                return
+            }
+
+            Task {
+                await self.processAndUpload(fileURL: fileURL)
             }
         } else {
             audioRecorder.startRecording()
