@@ -13,11 +13,28 @@ class AudioRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate {
         guard !isRecording else { return }
 
         #if os(iOS)
+        AVAudioApplication.requestRecordPermission { [weak self] granted in
+            DispatchQueue.main.async {
+                guard let self else { return }
+                if granted {
+                    self.beginRecording()
+                } else {
+                    self.errorMessage = "Microphone access denied. Please enable it in Settings."
+                }
+            }
+        }
+        #else
+        beginRecording()
+        #endif
+    }
+
+    private func beginRecording() {
+        #if os(iOS)
         let session = AVAudioSession.sharedInstance()
         #endif
         do {
             #if os(iOS)
-            try session.setCategory(.playAndRecord, mode: .default)
+            try session.setCategory(.playAndRecord, mode: .default, options: .defaultToSpeaker)
             try session.setActive(true)
             #endif
             

@@ -70,16 +70,16 @@ class SupabaseManager {
         let client = try getClient()
         let fileData = try Data(contentsOf: fileURL)
         
-        // Upload the file to "audio_memos" storage bucket using Supabase Storage
+        // Upload the file to "voice-memos" storage bucket using Supabase Storage
         try await client.storage
-            .from("audio_memos")
+            .from("voice-memos")
             .upload(
                 path: fileName,
                 file: fileData,
                 options: FileOptions(contentType: "audio/m4a")
             )
         
-        let publicURL = try client.storage.from("audio_memos").getPublicURL(path: fileName)
+        let publicURL = try client.storage.from("voice-memos").getPublicURL(path: fileName)
         return publicURL
     }
     

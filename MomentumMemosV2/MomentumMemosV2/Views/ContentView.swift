@@ -4,17 +4,7 @@ struct ContentView: View {
     @StateObject private var viewModel = ContentViewModel()
     
     var body: some View {
-        TabView {
-            batchView
-                .tabItem {
-                    Label("Batch", systemImage: "tray.full")
-                }
-            
-            StreamingRecordView()
-                .tabItem {
-                    Label("Live", systemImage: "waveform.circle")
-                }
-        }
+        batchView
     }
     
     private var batchView: some View {
